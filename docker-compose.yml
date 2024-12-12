@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  banking-app:
+    image: madhumitha2023/banking-app:0.1.RELEASE
+    ports:
+      - "8080:8080"  # Mapping port 8080 of the container to port 8080 on your host
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-bank:3306/bankdb  # Updated MySQL connection URL
+      - SPRING_DATASOURCE_USERNAME=bankuser  # Your DB username
+      - SPRING_DATASOURCE_PASSWORD=bankuser  # Your DB password
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update  # Automatically update the schema
+      - SPRING_JPA_SHOW_SQL=true  # Show SQL queries for debugging
+    depends_on:
+      - mysql-bank  # Ensure mysql-bank container is started before banking-app container
+
+  mysql-bank:
+    image: mysql:latest  # MySQL image from Docker Hub
+    container_name: mysql-bank
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bankdb  # Database to create
+      MYSQL_USER: bankuser  # Non-root user to access the DB
+      MYSQL_PASSWORD: bankuser  # Password for the bankuser
+    ports:
+      - "3305:3306"
+
+networks:
+  banking-network:
+    driver: bridge  # Default bridge network driver to allow container communication by name
