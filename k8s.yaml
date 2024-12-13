@@ -1,0 +1,102 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: banking-app
+
+---
+# MySQL Deployment and Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-bank
+  namespace: banking-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-bank
+  template:
+    metadata:
+      labels:
+        app: mysql-bank
+    spec:
+      containers:
+        - name: mysql-bank
+          image: mysql:latest
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "root"
+            - name: MYSQL_DATABASE
+              value: "bankdb"
+            - name: MYSQL_USER
+              value: "bankuser"
+            - name: MYSQL_PASSWORD
+              value: "bankuser"
+          ports:
+            - containerPort: 3306
+
+---
+# MySQL Service to expose the MySQL database
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-db-service
+  namespace: banking-app
+spec:
+  selector:
+    app: mysql-bank
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+
+---
+# Deployment for Banking App
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: banking-app
+  namespace: banking-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: banking-app
+  template:
+    metadata:
+      labels:
+        app: banking-app
+    spec:
+      containers:
+        - name: banking-app
+          image: 891376993695.dkr.ecr.ca-central-1.amazonaws.com/banking-app:0.1.RELEASE
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://mysql-db-service:3306/bankdb"  # Internal MySQL service
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "bankuser"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "bankuser"
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: "update"
+            - name: SPRING_JPA_SHOW_SQL
+              value: "true"
+
+---
+# Service for Banking App
+apiVersion: v1
+kind: Service
+metadata:
+  name: banking-app-service
+  namespace: banking-app
+spec:
+  selector:
+    app: banking-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer
